@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Registre — Ramadan 1448</title>
+<meta name="description" content="Compte à rebours du Ramadan et registre de mémorisation, hors ligne.">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#F2F3EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12100E" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<style>
+  :root {
+    --paper: #F2F3EF;
+    --card: #FBFBF8;
+    --ink: #1E2622;
+    --soft: #6B756F;
+    --hair: #D5D9D0;
+    --green: #3B6B58;
+    --green-pale: #BACCC1;
+    --madder: #9B4A3C;
+    --serif: Georgia, 'Noto Serif', 'Times New Roman', serif;
+    --mono: ui-monospace, 'Roboto Mono', 'DejaVu Sans Mono', monospace;
+
+    --pad-x: 18px;
+    --gap: 5px;
+    --tile-min: 50px;
+    --cell-min: 128px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #12100E;
+      --card: #1A1917;
+      --ink: #E8E6E0;
+      --soft: #8A8880;
+      --hair: #2E2C29;
+      --green: #6FA88F;
+      --green-pale: #33463D;
+      --madder: #C4776A;
+    }
+  }
+
+  /* Très petits écrans : on resserre pour garder 4 colonnes de pages. */
+  @media (max-width: 400px) {
+    :root { --pad-x: 13px; --gap: 4px; --tile-min: 48px; --cell-min: 110px; }
+  }
+  /* Écrans larges : la lecture reste dans une colonne, les pages respirent. */
+  @media (min-width: 780px) {
+    :root { --gap: 7px; --tile-min: 58px; }
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  html, body { margin: 0; padding: 0; background: var(--paper); }
+  body {
+    color: var(--ink);
+    font-family: var(--mono);
+    padding: calc(26px + env(safe-area-inset-top)) calc(var(--pad-x) + env(safe-area-inset-right))
+             calc(40px + env(safe-area-inset-bottom)) calc(var(--pad-x) + env(safe-area-inset-left));
+    max-width: 760px; margin: 0 auto;
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .eyebrow {
+    font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--soft); margin: 0 0 18px; line-height: 1.5;
+  }
+
+  .clock { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .days {
+    font-family: var(--serif); font-size: clamp(52px, 17vw, 92px);
+    line-height: .86; font-weight: 400; letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .days-unit { font-family: var(--serif); font-size: clamp(15px, 4.5vw, 21px); color: var(--soft); }
+  .hms { font-size: clamp(12px, 3.4vw, 14px); color: var(--soft); letter-spacing: .08em; font-variant-numeric: tabular-nums; }
+  .when { font-size: clamp(11px, 3vw, 12.5px); color: var(--soft); margin: 12px 0 0; line-height: 1.6; }
+
+  hr.rule { border: 0; border-top: 1px solid var(--hair); margin: 26px 0 22px; }
+
+  .pace {
+    display: grid; gap: 1px; background: var(--hair);
+    border: 1px solid var(--hair); margin-bottom: 26px;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: 620px) { .pace { grid-template-columns: repeat(4, 1fr); } }
+  .cell { background: var(--card); padding: 12px 13px 14px; min-width: 0; }
+  .cell-k { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--soft); margin-bottom: 7px; }
+  .cell-v { font-family: var(--serif); font-size: clamp(21px, 6vw, 25px); line-height: 1; font-variant-numeric: tabular-nums; }
+  .cell-v small { font-size: .58em; color: var(--soft); }
+  .cell-n { font-size: 10px; color: var(--soft); margin-top: 6px; line-height: 1.45; }
+  .cell.warn .cell-v { color: var(--madder); }
+
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 11px; }
+  .head h2 { font-family: var(--serif); font-size: 17px; font-weight: 400; margin: 0; }
+  .legend { display: flex; gap: 10px 13px; font-size: 10px; color: var(--soft); flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; }
+  .sw { width: 10px; height: 10px; border: 1px solid var(--hair); flex: none; }
+  .sw.half { background: linear-gradient(to bottom, var(--green-pale) 50%, var(--card) 50%); }
+  .sw.full { background: var(--green-pale); border-color: var(--green-pale); }
+  .sw.cons { background: var(--green); border-color: var(--green); }
+  .sw.next { border-style: dashed; border-color: var(--madder); }
+
+  .ledger {
+    direction: rtl; display: grid; gap: var(--gap);
+    grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));
+  }
+  .tile {
+    direction: ltr; aspect-ratio: 3 / 4; min-height: 44px;
+    border: 1px solid var(--hair); background: var(--card); color: var(--soft);
+    font-family: var(--mono); font-size: clamp(11px, 3vw, 13px); font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0; border-radius: 0;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .tile:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .tile[data-s="0.5"] {
+    background: linear-gradient(to bottom, var(--green-pale) 50%, var(--card) 50%);
+    border-color: var(--green-pale); color: var(--ink);
+  }
+  .tile[data-s="1"] { background: var(--green-pale); border-color: var(--green-pale); color: var(--ink); }
+  .tile[data-s="2"] { background: var(--green); border-color: var(--green); color: var(--paper); }
+  .tile.next { border: 1px dashed var(--madder); }
+
+  .foot { font-size: clamp(10.5px, 2.9vw, 11.5px); color: var(--soft); line-height: 1.75; margin: 16px 0 0; }
+  .foot strong { color: var(--ink); font-weight: 500; }
+
+  .toggle {
+    background: none; border: 0; border-bottom: 1px solid var(--hair);
+    color: var(--soft); font-family: var(--mono); font-size: 10px;
+    letter-spacing: .16em; text-transform: uppercase; cursor: pointer;
+    padding: 6px 0 4px; margin-top: 24px;
+  }
+  .toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .panel {
+    margin-top: 15px; padding: 15px; background: var(--card); border: 1px solid var(--hair);
+    display: grid; gap: 13px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  .panel[hidden] { display: none; }
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .field label { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--soft); }
+  .field input {
+    font-family: var(--mono); font-size: 16px; /* 16px : évite le zoom auto sur mobile */
+    padding: 9px; min-height: 42px; width: 100%;
+    border: 1px solid var(--hair); background: var(--paper); color: var(--ink); border-radius: 0;
+  }
+  .field input:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+
+  .actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; padding-top: 2px; }
+  .btn {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    padding: 11px 14px; min-height: 44px; cursor: pointer; flex: 1 1 auto;
+    border: 1px solid var(--hair); background: var(--paper); color: var(--ink); border-radius: 0;
+  }
+  .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .btn.danger { color: var(--madder); }
+
+  .status { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--soft); margin-top: 18px; line-height: 1.7; }
+  .status.err { color: var(--madder); }
+
+  @media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
+</style>
+</head>
+<body>
+
+<p class="eyebrow">Compte à rebours · registre de mémorisation</p>
+
+<div class="clock">
+  <span class="days" id="days">—</span>
+  <span class="days-unit">jours</span>
+  <span class="hms" id="hms">--:--:--</span>
+</div>
+<p class="when" id="when"></p>
+
+<hr class="rule">
+
+<div class="pace" id="pace"></div>
+
+<div class="head">
+  <h2>Le registre</h2>
+  <div class="legend">
+    <span class="chip"><span class="sw"></span> à venir</span>
+    <span class="chip"><span class="sw half"></span> demi-page</span>
+    <span class="chip"><span class="sw full"></span> mémorisée</span>
+    <span class="chip"><span class="sw cons"></span> consolidée</span>
+    <span class="chip"><span class="sw next"></span> prochaine</span>
+  </div>
+</div>
+
+<div class="ledger" id="ledger"></div>
+<p class="foot" id="foot"></p>
+
+<button class="toggle" id="toggle" aria-expanded="false" aria-controls="panel">Régler le plan</button>
+<div class="panel" id="panel" hidden>
+  <div class="field">
+    <label for="f-total">Pages à mémoriser</label>
+    <input id="f-total" type="number" min="1" inputmode="numeric">
+  </div>
+  <div class="field">
+    <label for="f-start">Début</label>
+    <input id="f-start" type="date">
+  </div>
+  <div class="field">
+    <label for="f-dead">1<sup>er</sup> jour de Ramadan</label>
+    <input id="f-dead" type="date">
+  </div>
+  <div class="field">
+    <label for="f-base">Première page du mushaf</label>
+    <input id="f-base" type="number" inputmode="numeric" placeholder="ex. 453">
+  </div>
+  <div class="actions">
+    <button class="btn" id="b-export">Exporter une sauvegarde</button>
+    <button class="btn" id="b-import">Restaurer</button>
+    <button class="btn danger" id="b-reset">Tout effacer</button>
+    <input type="file" id="f-file" accept="application/json" hidden>
+  </div>
+</div>
+
+<p class="status" id="status">Chargement…</p>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'hifdh.ramadan.v1';
+  var DAY = 86400000;
+  var DEF = { total: 29, start: '2026-08-31', deadline: '2027-02-08', base: '' };
+  var CYCLE = [0, 0.5, 1, 2];
+  var NAMES = { 0: 'à venir', 0.5: 'demi-page mémorisée', 1: 'mémorisée', 2: 'consolidée' };
+
+  var state = { settings: Object.assign({}, DEF), pages: {} };
+  var $ = function (id) { return document.getElementById(id); };
+  var statusEl = $('status');
+  var idleMsg = 'Enregistré sur cet appareil · fonctionne hors ligne';
+
+  function setStatus(t, err) {
+    statusEl.textContent = t;
+    statusEl.className = 'status' + (err ? ' err' : '');
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (d.settings) state.settings = Object.assign({}, DEF, d.settings);
+        if (d.pages) state.pages = d.pages;
+      }
+      setStatus(idleMsg);
+    } catch (e) {
+      setStatus('Stockage inaccessible — tes coches ne seront pas conservées.', true);
+    }
+  }
+
+  var t;
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      setStatus('Enregistré');
+      clearTimeout(t);
+      t = setTimeout(function () { setStatus(idleMsg); }, 1400);
+    } catch (e) {
+      setStatus('Enregistrement impossible — mémoire du navigateur pleine ou bloquée.', true);
+    }
+  }
+
+  function parseDate(s) { var p = String(s).split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function fmt(d) { return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function trim(n) { return Number(n.toFixed(1)).toString().replace('.', ','); }
+
+  function stats() {
+    var s = state.settings;
+    var total = Math.max(1, parseInt(s.total, 10) || 1);
+    var start = parseDate(s.start), deadline = parseDate(s.deadline);
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+
+    var done = 0, cons = 0;
+    for (var k in state.pages) {
+      var v = state.pages[k];
+      done += Math.min(v, 1);          // une demi-page compte pour 0,5
+      if (v === 2) cons++;
+    }
+    var weeksElapsed = Math.max(0, (today - start) / (7 * DAY));
+    var weeksLeft = (deadline - today) / (7 * DAY);
+    var remaining = Math.max(0, total - done);
+    return {
+      total: total, done: done, cons: cons, remaining: remaining,
+      weeksLeft: weeksLeft,
+      observed: weeksElapsed >= 1 ? done / weeksElapsed : null,
+      required: weeksLeft > 0 ? remaining / weeksLeft : Infinity
+    };
+  }
+
+  function cell(k, v, n, warn) {
+    return '<div class="cell' + (warn ? ' warn' : '') + '"><div class="cell-k">' + k +
+      '</div><div class="cell-v">' + v + '</div><div class="cell-n">' + n + '</div></div>';
+  }
+
+  function renderPace() {
+    var st = stats();
+    var late = isFinite(st.required) && st.observed !== null && st.required > st.observed + 0.05;
+    $('pace').innerHTML =
+      cell('Mémorisées', trim(st.done) + '<small>/' + st.total + '</small>', st.cons + ' consolidées') +
+      cell('Restantes', trim(st.remaining), trim(st.weeksLeft) + ' semaines disponibles') +
+      cell('Rythme réel', st.observed !== null ? trim(st.observed) : '—', 'pages par semaine') +
+      cell('Rythme à tenir', isFinite(st.required) ? st.required.toFixed(2).replace('.', ',') : '—',
+           'pages par semaine', late);
+
+    $('foot').innerHTML = st.remaining > 0
+      ? 'Le registre se lit de droite à gauche, comme le mushaf. Chaque pression fait avancer la page d\u2019un cran : demi-page, page entière, puis page consolidée (mur\u00e2ja\u2019a faite). Une pression de plus l\u2019efface. Il reste <strong>' +
+        trim(st.remaining) + ' pages</strong> pour <strong>' + trim(st.weeksLeft) + ' semaines</strong>.'
+      : 'Les ' + st.total + ' pages sont mémorisées. Reste la mur\u00e2ja\u2019a jusqu\u2019au premier jour de jeûne.';
+  }
+
+  function renderLedger() {
+    var st = stats();
+    var base = parseInt(state.settings.base, 10);
+    var wrap = $('ledger');
+    wrap.innerHTML = '';
+    var nextFound = false;
+    for (var i = 0; i < st.total; i++) {
+      var s = state.pages[i] || 0;
+      var b = document.createElement('button');
+      b.className = 'tile';
+      b.type = 'button';
+      b.dataset.s = String(s);
+      b.dataset.i = i;
+      b.textContent = isFinite(base) ? (base + i) : (i + 1);
+      b.setAttribute('aria-label', 'Page ' + b.textContent + ', ' + NAMES[s]);
+      if (s === 0 && !nextFound) { b.classList.add('next'); nextFound = true; }
+      wrap.appendChild(b);
+    }
+  }
+
+  $('ledger').addEventListener('click', function (e) {
+    var el = e.target.closest('.tile');
+    if (!el) return;
+    var i = el.dataset.i;
+    var cur = state.pages[i] || 0;
+    var next = CYCLE[(CYCLE.indexOf(cur) + 1) % CYCLE.length];
+    if (next === 0) delete state.pages[i]; else state.pages[i] = next;
+    renderLedger(); renderPace(); save();
+  });
+
+  function tick() {
+    var diff = parseDate(state.settings.deadline) - new Date();
+    if (diff < 0) diff = 0;
+    $('days').textContent = Math.floor(diff / DAY);
+    $('hms').textContent = pad(Math.floor((diff % DAY) / 3600000)) + ':' +
+      pad(Math.floor((diff % 3600000) / 60000)) + ':' + pad(Math.floor((diff % 60000) / 1000));
+    $('when').innerHTML = '1<sup>er</sup> Ramadan 1448 H, attendu le ' +
+      fmt(parseDate(state.settings.deadline)) +
+      ' — date estimée, sous réserve de l\u2019observation du croissant.';
+  }
+
+  function syncInputs() {
+    $('f-total').value = state.settings.total;
+    $('f-start').value = state.settings.start;
+    $('f-dead').value = state.settings.deadline;
+    $('f-base').value = state.settings.base;
+  }
+
+  var map = { 'f-total': 'total', 'f-start': 'start', 'f-dead': 'deadline', 'f-base': 'base' };
+  Object.keys(map).forEach(function (id) {
+    $(id).addEventListener('change', function (e) {
+      state.settings[map[id]] = e.target.value;
+      renderLedger(); renderPace(); tick(); save();
+    });
+  });
+
+  $('toggle').addEventListener('click', function () {
+    var p = $('panel'), open = p.hasAttribute('hidden');
+    if (open) p.removeAttribute('hidden'); else p.setAttribute('hidden', '');
+    this.setAttribute('aria-expanded', String(open));
+    this.textContent = open ? 'Masquer les réglages' : 'Régler le plan';
+  });
+
+  $('b-export').addEventListener('click', function () {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'registre-hifdh-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setStatus('Sauvegarde téléchargée');
+    setTimeout(function () { setStatus(idleMsg); }, 1800);
+  });
+
+  $('b-import').addEventListener('click', function () { $('f-file').click(); });
+  $('f-file').addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var d = JSON.parse(r.result);
+        if (!d || typeof d !== 'object' || !d.pages) throw new Error('format');
+        state.settings = Object.assign({}, DEF, d.settings || {});
+        state.pages = d.pages;
+        syncInputs(); renderLedger(); renderPace(); tick(); save();
+      } catch (err) {
+        setStatus('Fichier illisible — attends un fichier .json exporté depuis cette application.', true);
+      }
+    };
+    r.readAsText(file);
+    e.target.value = '';
+  });
+
+  $('b-reset').addEventListener('click', function () {
+    if (!confirm('Effacer toutes les coches et revenir au plan de départ ?')) return;
+    state = { settings: Object.assign({}, DEF), pages: {} };
+    syncInputs(); renderLedger(); renderPace(); tick(); save();
+  });
+
+  load(); syncInputs(); renderLedger(); renderPace(); tick();
+  setInterval(tick, 1000);
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
