@@ -94,6 +94,17 @@
   .cell-n { font-size: 10px; color: var(--soft); margin-top: 6px; line-height: 1.45; }
   .cell.warn .cell-v { color: var(--madder); }
 
+  .target {
+    background: var(--card); border: 1px solid var(--hair); border-left: 3px solid var(--ink);
+    padding: 13px 14px 14px; margin: -12px 0 26px;
+  }
+  .target .cell-v { font-size: clamp(21px, 6vw, 25px); }
+  .target.behind { border-left-color: var(--madder); }
+  .target.behind .gap { color: var(--madder); }
+  .target.ahead { border-left-color: var(--green); }
+  .target.ahead .gap { color: var(--green); }
+  .target .cell-n { font-size: 11px; margin-top: 8px; line-height: 1.6; }
+
   .head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 11px; }
   .head h2 { font-family: var(--serif); font-size: 17px; font-weight: 400; margin: 0; }
   .legend { display: flex; gap: 10px 13px; font-size: 10px; color: var(--soft); flex-wrap: wrap; }
@@ -103,6 +114,7 @@
   .sw.full { background: var(--green-pale); border-color: var(--green-pale); }
   .sw.cons { background: var(--green); border-color: var(--green); }
   .sw.next { border-style: dashed; border-color: var(--madder); }
+  .sw.goal { box-shadow: 0 3px 0 -1px var(--ink); }
 
   .ledger {
     direction: rtl; display: grid; gap: var(--gap);
@@ -124,6 +136,8 @@
   .tile[data-s="1"] { background: var(--green-pale); border-color: var(--green-pale); color: var(--ink); }
   .tile[data-s="2"] { background: var(--green); border-color: var(--green); color: var(--paper); }
   .tile.next { border: 1px dashed var(--madder); }
+  /* Page où le plan régulier voudrait que tu sois aujourd'hui. */
+  .tile.goal { box-shadow: 0 4px 0 -1px var(--ink); }
 
   .foot { font-size: clamp(10.5px, 2.9vw, 11.5px); color: var(--soft); line-height: 1.75; margin: 16px 0 0; }
   .foot strong { color: var(--ink); font-weight: 500; }
@@ -179,6 +193,7 @@
 <hr class="rule">
 
 <div class="pace" id="pace"></div>
+<div class="target" id="target"></div>
 
 <div class="head">
   <h2>Le registre</h2>
@@ -188,6 +203,7 @@
     <span class="chip"><span class="sw full"></span> mémorisée</span>
     <span class="chip"><span class="sw cons"></span> consolidée</span>
     <span class="chip"><span class="sw next"></span> prochaine</span>
+    <span class="chip"><span class="sw goal"></span> objectif du jour</span>
   </div>
 </div>
 
@@ -296,6 +312,59 @@
     };
   }
 
+  // Où l'on devrait en être à une date donnée, si l'on avance au même rythme
+  // du début jusqu'à la veille du Ramadan. Arrondi à la demi-page inférieure.
+  function planned(date) {
+    var s = state.settings;
+    var total = Math.max(1, parseInt(s.total, 10) || 1);
+    var start = parseDate(s.start), deadline = parseDate(s.deadline);
+    var span = deadline - start;
+    var f = span > 0 ? (date - start) / span : 1;
+    f = Math.min(1, Math.max(0, f));
+    return Math.floor(total * f * 2 + 1e-9) / 2;
+  }
+
+  function pageLabel(n) {
+    var base = parseInt(state.settings.base, 10);
+    var i = Math.max(1, Math.ceil(n));
+    return 'page ' + (isFinite(base) ? base + i - 1 : i);
+  }
+
+  function goalIndex() {
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var p = planned(today);
+    return p > 0 ? Math.ceil(p) - 1 : -1;
+  }
+
+  function renderTarget() {
+    var st = stats();
+    var el = $('target');
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var start = parseDate(state.settings.start);
+    var p = planned(today);
+    var inWeek = planned(new Date(today.getTime() + 7 * DAY));
+    var diff = st.done - p;
+    var cls = 'target', gap;
+
+    if (today < start) {
+      el.className = cls;
+      el.innerHTML = '<div class="cell-k">Où tu devrais être</div><div class="cell-v">Pas encore commencé</div>' +
+        '<div class="cell-n">Le plan démarre le ' + fmt(start) + '.</div>';
+      return;
+    }
+    if (Math.abs(diff) < 0.25) gap = '<span class="gap">Tu es pile dans le plan.</span>';
+    else if (diff < 0) { cls += ' behind'; gap = '<span class="gap">' + trim(-diff) + ' page' + (-diff >= 2 ? 's' : '') + ' de retard.</span>'; }
+    else { cls += ' ahead'; gap = '<span class="gap">' + trim(diff) + ' page' + (diff >= 2 ? 's' : '') + ' d\u2019avance.</span>'; }
+
+    el.className = cls;
+    el.innerHTML = '<div class="cell-k">Où tu devrais être aujourd\u2019hui</div>' +
+      '<div class="cell-v">' + trim(p) + '<small> / ' + st.total + ' pages</small></div>' +
+      '<div class="cell-n">' + (p > 0 ? 'Jusqu\u2019à la <strong>' + pageLabel(p) + '</strong>. ' : '') +
+      'Tu en as ' + trim(st.done) + ' : ' + gap +
+      (p < st.total ? '<br>Dans 7 jours : ' + trim(inWeek) + ' pages (' + pageLabel(inWeek) + ').' : '') +
+      '</div>';
+  }
+
   function cell(k, v, n, warn) {
     return '<div class="cell' + (warn ? ' warn' : '') + '"><div class="cell-k">' + k +
       '</div><div class="cell-v">' + v + '</div><div class="cell-n">' + n + '</div></div>';
@@ -322,7 +391,7 @@
     var base = parseInt(state.settings.base, 10);
     var wrap = $('ledger');
     wrap.innerHTML = '';
-    var nextFound = false;
+    var nextFound = false, goal = goalIndex();
     for (var i = 0; i < st.total; i++) {
       var s = state.pages[i] || 0;
       var b = document.createElement('button');
@@ -333,6 +402,7 @@
       b.textContent = isFinite(base) ? (base + i) : (i + 1);
       b.setAttribute('aria-label', 'Page ' + b.textContent + ', ' + NAMES[s]);
       if (s === 0 && !nextFound) { b.classList.add('next'); nextFound = true; }
+      if (i === goal) { b.classList.add('goal'); b.setAttribute('aria-label', b.getAttribute('aria-label') + ', objectif du jour'); }
       wrap.appendChild(b);
     }
   }
@@ -344,7 +414,7 @@
     var cur = state.pages[i] || 0;
     var next = CYCLE[(CYCLE.indexOf(cur) + 1) % CYCLE.length];
     if (next === 0) delete state.pages[i]; else state.pages[i] = next;
-    renderLedger(); renderPace(); save();
+    renderLedger(); renderPace(); renderTarget(); save();
   });
 
   function tick() {
@@ -369,7 +439,7 @@
   Object.keys(map).forEach(function (id) {
     $(id).addEventListener('change', function (e) {
       state.settings[map[id]] = e.target.value;
-      renderLedger(); renderPace(); tick(); save();
+      renderLedger(); renderPace(); renderTarget(); tick(); save();
     });
   });
 
@@ -402,7 +472,7 @@
         if (!d || typeof d !== 'object' || !d.pages) throw new Error('format');
         state.settings = Object.assign({}, DEF, d.settings || {});
         state.pages = d.pages;
-        syncInputs(); renderLedger(); renderPace(); tick(); save();
+        syncInputs(); renderLedger(); renderPace(); renderTarget(); tick(); save();
       } catch (err) {
         setStatus('Fichier illisible — attends un fichier .json exporté depuis cette application.', true);
       }
@@ -414,10 +484,10 @@
   $('b-reset').addEventListener('click', function () {
     if (!confirm('Effacer toutes les coches et revenir au plan de départ ?')) return;
     state = { settings: Object.assign({}, DEF), pages: {} };
-    syncInputs(); renderLedger(); renderPace(); tick(); save();
+    syncInputs(); renderLedger(); renderPace(); renderTarget(); tick(); save();
   });
 
-  load(); syncInputs(); renderLedger(); renderPace(); tick();
+  load(); syncInputs(); renderLedger(); renderPace(); renderTarget(); tick();
   setInterval(tick, 1000);
 
   if ('serviceWorker' in navigator) {
