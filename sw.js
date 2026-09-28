@@ -1,4 +1,4 @@
-const CACHE = 'hifdh-v2';
+const CACHE = 'hifdh-v4';
 const ASSETS = [
   './',
   './index.html',

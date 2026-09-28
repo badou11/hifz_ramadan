@@ -56,7 +56,7 @@ Modifie les fichiers dans le dépôt, puis **incrémente la version du cache** e
 tête de `sw.js` :
 
 ```js
-const CACHE = 'hifdh-v2';   // v1 → v2
+const CACHE = 'hifdh-v4';   // v3 → v4
 ```
 
 Sans ce changement, le service worker continuera de servir l'ancienne version
@@ -87,3 +87,16 @@ page de ton édition.
 La date du 8 février 2027 est une estimation astronomique (calendrier Umm
 al-Qura). La date effective au Sénégal sera annoncée la veille au soir ; le
 champ de réglage permet de la corriger d'un jour le moment venu.
+
+## Où je devrais être
+
+Sous les indicateurs, l'encadré **Où tu devrais être aujourd'hui** répartit les
+pages de façon régulière entre la date de départ et la date de fin visée — par
+défaut **une semaine avant** le 1er jour de Ramadan, pour garder du temps de
+murâja'a. Le champ **Finir avant Ramadan (jours)** du panneau de réglages change
+cette marge (0 = finir la veille du Ramadan). Le rythme à tenir et les semaines
+disponibles se calculent aussi sur cette date. L'encadré
+indique combien de pages devraient déjà être mémorisées à la date du jour
+(arrondi à la demi-page), jusqu'à quel numéro de page, ton avance ou ton retard,
+et l'objectif dans 7 jours. Dans le registre, la page visée est soulignée d'un
+trait noir (« objectif du jour »).
